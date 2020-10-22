@@ -69,12 +69,12 @@ pub struct State {
 
 impl State {
     pub fn new(name: String) -> State {
-        return State {
+        State {
             epsilon: vec![],
             transitions: HashMap::new(),
             name,
             is_end: false,
-        };
+        }
     }
 }
 
@@ -86,7 +86,7 @@ impl Display for State {
 
 impl PartialEq for State {
     fn eq(&self, other: &Self) -> bool {
-        return self.name == other.name;
+        self.name == other.name
     }
 }
 

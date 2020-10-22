@@ -10,7 +10,7 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn new(pattern: String) -> Lexer {
-        return Lexer {
+        Lexer {
             pattern,
             current: 0,
             symbols: vec![
@@ -22,7 +22,7 @@ impl Lexer {
                 ('+', Token::Plus),
                 ('?', Token::QMark),
             ].into_iter().collect(),
-        };
+        }
     }
 
     pub fn get_token(&mut self) -> Token {
@@ -90,7 +90,7 @@ impl Parser {
         if print_tokens {
             self.print_tokens();
         }
-        return &self.tokens;
+        &self.tokens
     }
 
     fn exp(&mut self) {
@@ -121,7 +121,7 @@ impl Parser {
         self.primary();
         if let Token::Star | Token::Plus | Token::QMark = self.lookahead {
             self.append(self.lookahead);
-            let la = (&self.lookahead).clone();
+            let la = self.lookahead;
             self.consume(&la).unwrap();
         }
     }

@@ -31,10 +31,10 @@ fn add_state(state: &SState, states: &mut Vec<SState>) {
 impl NFA {
     pub fn new(start: SState, end: SState) -> NFA {
         end.borrow_mut().is_end = true;
-        return NFA {
+        NFA {
             start,
             end,
-        };
+        }
     }
 
     pub fn match_regex(&mut self, to_match: &str) -> bool {
@@ -58,7 +58,7 @@ impl NFA {
                 return true;
             }
         }
-        return false;
+        false
     }
 }
 
@@ -71,7 +71,7 @@ pub struct Handler {
 impl Handler {
     fn create_state(&mut self) -> Rc<RefCell<State>> {
         self.state_count += 1;
-        return Rc::new(RefCell::new(State::new(format!("s{}", self.state_count))));
+        Rc::new(RefCell::new(State::new(format!("s{}", self.state_count))))
     }
 
     fn handle_char(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) {
@@ -86,7 +86,7 @@ impl Handler {
         s0.borrow_mut()
             .transitions
             .entry(v)
-            .or_insert(Rc::clone(&s1));
+            .or_insert_with(|| Rc::clone(&s1));
 
         let nfa = NFA::new(s0, s1);
         let mut nfa = vec![nfa];
@@ -155,10 +155,16 @@ impl Handler {
         }
     }
 
-    pub fn new() -> Handler {
-        return Handler {
+    pub fn new() -> Self {
+        Handler {
             state_count: 0
-        };
+        }
+    }
+}
+
+impl Default for Handler {
+    fn default() -> Self {
+        Handler::new()
     }
 }
 
@@ -175,5 +181,5 @@ pub fn compile(pattern: String) -> NFA {
     }
 
     assert_eq!(nfa_stack.len(), 1);
-    return nfa_stack.pop().unwrap();
+    nfa_stack.pop().unwrap()
 }
