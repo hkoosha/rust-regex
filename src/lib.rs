@@ -31,10 +31,7 @@ fn add_state(state: &SState, states: &mut Vec<SState>) {
 impl NFA {
     pub fn new(start: SState, end: SState) -> NFA {
         end.borrow_mut().is_end = true;
-        NFA {
-            start,
-            end,
-        }
+        NFA { start, end }
     }
 
     pub fn match_regex(&mut self, to_match: &str) -> bool {
@@ -97,7 +94,10 @@ impl Handler {
         let n2 = nfa_stack.pop().unwrap();
         let n1 = nfa_stack.pop().unwrap();
         n1.end.borrow_mut().is_end = false;
-        n1.end.borrow_mut().epsilon.append(&mut vec![Rc::clone(&n2.start)]);
+        n1.end
+            .borrow_mut()
+            .epsilon
+            .append(&mut vec![Rc::clone(&n2.start)]);
         let nfa = NFA::new(n1.start, n2.end);
         nfa_stack.append(&mut vec![nfa]);
     }
@@ -106,10 +106,18 @@ impl Handler {
         let n2 = nfa_stack.pop().unwrap();
         let n1 = nfa_stack.pop().unwrap();
         let s0 = self.create_state();
-        s0.borrow_mut().epsilon.append(&mut vec![Rc::clone(&n1.start), Rc::clone(&n2.start)]);
+        s0.borrow_mut()
+            .epsilon
+            .append(&mut vec![Rc::clone(&n1.start), Rc::clone(&n2.start)]);
         let s3 = self.create_state();
-        n1.end.borrow_mut().epsilon.append(&mut vec![Rc::clone(&s3)]);
-        n2.end.borrow_mut().epsilon.append(&mut vec![Rc::clone(&s3)]);
+        n1.end
+            .borrow_mut()
+            .epsilon
+            .append(&mut vec![Rc::clone(&s3)]);
+        n2.end
+            .borrow_mut()
+            .epsilon
+            .append(&mut vec![Rc::clone(&s3)]);
         n1.end.borrow_mut().is_end = false;
         n2.end.borrow_mut().is_end = false;
         let nfa = NFA::new(s0, s3);
@@ -121,13 +129,18 @@ impl Handler {
         let s0 = self.create_state();
         let s1 = self.create_state();
 
-        s0.borrow_mut().epsilon.append(&mut vec![Rc::clone(&n1.start)]);
+        s0.borrow_mut()
+            .epsilon
+            .append(&mut vec![Rc::clone(&n1.start)]);
 
         if let Token::Star = t {
             s0.borrow_mut().epsilon.append(&mut vec![Rc::clone(&s1)]);
         }
 
-        n1.end.borrow_mut().epsilon.append(&mut vec![Rc::clone(&s1), Rc::clone(&n1.start)]);
+        n1.end
+            .borrow_mut()
+            .epsilon
+            .append(&mut vec![Rc::clone(&s1), Rc::clone(&n1.start)]);
         n1.end.borrow_mut().is_end = true;
 
         let nfa = NFA::new(s0, s1);
@@ -136,7 +149,10 @@ impl Handler {
 
     fn handle_qmark(&mut self, _t: &Token, nfa_stack: &mut Vec<NFA>) {
         let n1 = nfa_stack.pop().unwrap();
-        n1.start.borrow_mut().epsilon.append(&mut vec![Rc::clone(&n1.end)]);
+        n1.start
+            .borrow_mut()
+            .epsilon
+            .append(&mut vec![Rc::clone(&n1.end)]);
         nfa_stack.append(&mut vec![n1]);
     }
 
@@ -156,9 +172,7 @@ impl Handler {
     }
 
     pub fn new() -> Self {
-        Handler {
-            state_count: 0
-        }
+        Handler { state_count: 0 }
     }
 }
 

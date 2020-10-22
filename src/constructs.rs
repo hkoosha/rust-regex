@@ -41,7 +41,7 @@ impl Token {
             Token::Concat => '.',
             Token::Plus => '+',
             Token::QMark => '?',
-            _ => panic!("does not have a symbol associated with it.")
+            _ => panic!("does not have a symbol associated with it."),
         }
     }
 }
@@ -97,4 +97,3 @@ impl Hash for State {
         self.name.hash(state);
     }
 }
-

@@ -21,7 +21,9 @@ impl Lexer {
                 ('.', Token::Concat),
                 ('+', Token::Plus),
                 ('?', Token::QMark),
-            ].into_iter().collect(),
+            ]
+            .into_iter()
+            .collect(),
         }
     }
 
