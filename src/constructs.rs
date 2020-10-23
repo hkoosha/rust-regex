@@ -32,27 +32,27 @@ impl Token {
         }
     }
 
-    pub fn symbol(&self) -> char {
+    pub fn symbol(&self) -> Option<char> {
         match &self {
-            Token::LeftParen => '(',
-            Token::RightParen => ')',
-            Token::Star => '*',
-            Token::Alt => '|',
-            Token::Concat => '.',
-            Token::Plus => '+',
-            Token::QMark => '?',
-            _ => panic!("does not have a symbol associated with it."),
+            Token::LeftParen => Some('('),
+            Token::RightParen => Some(')'),
+            Token::Star => Some('*'),
+            Token::Alt => Some('|'),
+            Token::Concat => Some('.'),
+            Token::Plus => Some('+'),
+            Token::QMark => Some('?'),
+            _ => None,
         }
     }
 }
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        let name = match self {
-            Token::Char(c) => format!("Char={}", c),
-            _ => self.name().to_string(),
-        };
-        write!(f, "Token[{}]", name)
+        match self {
+            Token::Char(c) => write!(f, "Token=[{}]", c),
+            Token::None => write!(f, "Token[]"),
+            _ => write!(f, "Token=[{}]", self.symbol().unwrap())
+        }
     }
 }
 
@@ -97,3 +97,26 @@ impl Hash for State {
         self.name.hash(state);
     }
 }
+
+
+// ----------------------------------
+
+#[derive(Debug)]
+pub struct ParseError {
+    error: String,
+}
+
+impl ParseError {
+    pub fn new(error: String) -> ParseError {
+        ParseError {
+            error,
+        }
+    }
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "ParseError[{}]", self.error)
+    }
+}
+

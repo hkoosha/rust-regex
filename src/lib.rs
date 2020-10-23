@@ -1,11 +1,11 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::constructs::{SState, State, Token};
+use crate::constructs::{SState, State, Token, ParseError};
 use crate::functionals::{Lexer, Parser};
 
-mod constructs;
-mod functionals;
+pub mod constructs;
+pub mod functionals;
 
 // ******* BE WARNED !!! There are mem leaks in the following code! *******
 
@@ -182,10 +182,12 @@ impl Default for Handler {
     }
 }
 
-pub fn compile(pattern: String) -> NFA {
+// ----------------------------------
+
+pub fn compile(pattern: String) -> Result<NFA, ParseError> {
     let lexer = Lexer::new(pattern);
     let mut parser = Parser::new(lexer);
-    let tokens = parser.parse(true);
+    let tokens = parser.parse(true)?;
 
     let mut handler = Handler::new();
 
@@ -195,5 +197,5 @@ pub fn compile(pattern: String) -> NFA {
     }
 
     assert_eq!(nfa_stack.len(), 1);
-    nfa_stack.pop().unwrap()
+    Ok(nfa_stack.pop().unwrap())
 }
