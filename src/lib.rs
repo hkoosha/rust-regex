@@ -4,8 +4,8 @@ use std::rc::Rc;
 use crate::constructs::{SState, State, Token, ParseError};
 use crate::functionals::{Lexer, Parser};
 
-pub mod constructs;
-pub mod functionals;
+mod constructs;
+mod functionals;
 
 // ******* BE WARNED !!! There are mem leaks in the following code! *******
 
