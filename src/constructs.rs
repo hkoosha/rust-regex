@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Error, Formatter};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
+use std::error;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Token {
@@ -106,6 +107,7 @@ pub struct ParseError {
     error: String,
 }
 
+/// Errors by parser
 impl ParseError {
     pub fn new(error: String) -> ParseError {
         ParseError {
@@ -116,7 +118,31 @@ impl ParseError {
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        write!(f, "ParseError[{}]", self.error)
+        write!(f, "ParseError[{}]", &self.error)
     }
 }
+
+impl error::Error for ParseError {}
+
+
+#[derive(Debug)]
+pub struct NfaConstructionError {
+    error: String,
+}
+
+impl NfaConstructionError {
+    pub fn new(error: String) -> NfaConstructionError {
+        NfaConstructionError {
+            error,
+        }
+    }
+}
+
+impl Display for NfaConstructionError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "NfaConstructionError[{}]", &self.error)
+    }
+}
+
+impl error::Error for NfaConstructionError {}
 

@@ -1,8 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::constructs::{SState, State, Token, ParseError};
+use crate::constructs::{SState, State, Token, NfaConstructionError};
 use crate::functionals::{Lexer, Parser};
+use std::error::Error;
 
 mod constructs;
 mod functionals;
@@ -71,11 +72,12 @@ impl Handler {
         Rc::new(RefCell::new(State::new(format!("s{}", self.state_count))))
     }
 
-    fn handle_char(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) {
+    fn handle_char(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) -> Result<(), NfaConstructionError> {
         let v: char = if let Token::Char(v) = *t {
             v
         } else {
-            panic!();
+            return Err(NfaConstructionError::new(
+                format!("expecting Token::Char, got={}", *t)));
         };
 
         let s0 = self.create_state();
@@ -88,6 +90,7 @@ impl Handler {
         let nfa = NFA::new(s0, s1);
         let mut nfa = vec![nfa];
         nfa_stack.append(&mut nfa);
+        Ok(())
     }
 
     fn handle_concat(&mut self, _t: &Token, nfa_stack: &mut Vec<NFA>) {
@@ -156,19 +159,18 @@ impl Handler {
         nfa_stack.append(&mut vec![n1]);
     }
 
-    pub fn handle(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) {
+    pub fn handle(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) -> Result<(), NfaConstructionError> {
         match t {
             Token::Star => self.handle_rep(t, nfa_stack),
             Token::Alt => self.handle_alt(t, nfa_stack),
             Token::Concat => self.handle_concat(t, nfa_stack),
             Token::Plus => self.handle_rep(t, nfa_stack),
             Token::QMark => self.handle_qmark(t, nfa_stack),
-            Token::Char(_) => self.handle_char(t, nfa_stack),
-
-            Token::LeftParen => panic!(),
-            Token::RightParen => panic!(),
-            Token::None => panic!(),
+            Token::Char(_) => return self.handle_char(t, nfa_stack),
+            _ => return Err(NfaConstructionError::new(
+                format!("not expecting this token type: {}", t))),
         }
+        Ok(())
     }
 
     pub fn new() -> Self {
@@ -184,7 +186,7 @@ impl Default for Handler {
 
 // ----------------------------------
 
-pub fn compile(pattern: String) -> Result<NFA, ParseError> {
+pub fn compile(pattern: String) -> Result<NFA, Box<dyn Error>> {
     let lexer = Lexer::new(pattern);
     let mut parser = Parser::new(lexer);
     let tokens = parser.parse(true)?;
@@ -193,7 +195,7 @@ pub fn compile(pattern: String) -> Result<NFA, ParseError> {
 
     let mut nfa_stack = vec![];
     for t in tokens {
-        handler.handle(t, &mut nfa_stack);
+        handler.handle(t, &mut nfa_stack)?;
     }
 
     assert_eq!(nfa_stack.len(), 1);
