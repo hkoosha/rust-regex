@@ -1,9 +1,10 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt::{Display, Error, Formatter};
+use std::fmt::{Display, Error as FmtError, Formatter};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::error;
+use error::Error;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Token {
@@ -48,7 +49,7 @@ impl Token {
 }
 
 impl Display for Token {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         match self {
             Token::Char(c) => write!(f, "Token=[{}]", c),
             Token::None => write!(f, "Token[]"),
@@ -80,7 +81,7 @@ impl State {
 }
 
 impl Display for State {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         write!(f, "State[{}]", self.name)
     }
 }
@@ -117,12 +118,12 @@ impl ParseError {
 }
 
 impl Display for ParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         write!(f, "ParseError[{}]", &self.error)
     }
 }
 
-impl error::Error for ParseError {}
+impl Error for ParseError {}
 
 
 #[derive(Debug)]
@@ -139,10 +140,10 @@ impl NfaConstructionError {
 }
 
 impl Display for NfaConstructionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         write!(f, "NfaConstructionError[{}]", &self.error)
     }
 }
 
-impl error::Error for NfaConstructionError {}
+impl Error for NfaConstructionError {}
 
