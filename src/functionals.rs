@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::constructs::{Token, ParseError};
+use crate::constructs::{ParseError, Token};
 
 pub struct Lexer {
     pattern: String,
@@ -22,10 +22,10 @@ impl Lexer {
                 (Token::Plus, Token::Plus),
                 (Token::QMark, Token::QMark),
             ]
-                .into_iter()
-                .map(|x| (x.0.symbol(), x.1))
-                .map(|x| (x.0.unwrap(), x.1))
-                .collect(),
+            .into_iter()
+            .map(|x| (x.0.symbol(), x.1))
+            .map(|x| (x.0.unwrap(), x.1))
+            .collect(),
         }
     }
 
@@ -73,7 +73,10 @@ impl Parser {
             self.lookahead = self.lexer.get_token();
             Ok(())
         } else {
-            Err(ParseError::new(format!("was expecting={} but got={}", token, self.lookahead)))
+            Err(ParseError::new(format!(
+                "was expecting={} but got={}",
+                token, self.lookahead
+            )))
         };
     }
 
@@ -150,7 +153,10 @@ impl Parser {
                 self.consume(&Token::Char(0 as char))?;
             }
             _ => {
-                return Err(ParseError::new(format!("was not expecting this token type in primary() : {}", self.lookahead)));
+                return Err(ParseError::new(format!(
+                    "was not expecting this token type in primary() : {}",
+                    self.lookahead
+                )));
             }
         }
 

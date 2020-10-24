@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::constructs::{SState, State, Token, NfaConstructionError};
+use crate::constructs::{NfaConstructionError, SState, State, Token};
 use crate::functionals::{Lexer, Parser};
 use std::error::Error;
 
@@ -72,12 +72,18 @@ impl Handler {
         Rc::new(RefCell::new(State::new(format!("s{}", self.state_count))))
     }
 
-    fn handle_char(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) -> Result<(), NfaConstructionError> {
+    fn handle_char(
+        &mut self,
+        t: &Token,
+        nfa_stack: &mut Vec<NFA>,
+    ) -> Result<(), NfaConstructionError> {
         let v: char = if let Token::Char(v) = *t {
             v
         } else {
-            return Err(NfaConstructionError::new(
-                format!("expecting Token::Char, got={}", *t)));
+            return Err(NfaConstructionError::new(format!(
+                "expecting Token::Char, got={}",
+                *t
+            )));
         };
 
         let s0 = self.create_state();
@@ -159,7 +165,11 @@ impl Handler {
         nfa_stack.append(&mut vec![n1]);
     }
 
-    pub fn handle(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) -> Result<(), NfaConstructionError> {
+    pub fn handle(
+        &mut self,
+        t: &Token,
+        nfa_stack: &mut Vec<NFA>,
+    ) -> Result<(), NfaConstructionError> {
         match t {
             Token::Star => self.handle_rep(t, nfa_stack),
             Token::Alt => self.handle_alt(t, nfa_stack),
@@ -167,8 +177,12 @@ impl Handler {
             Token::Plus => self.handle_rep(t, nfa_stack),
             Token::QMark => self.handle_qmark(t, nfa_stack),
             Token::Char(_) => return self.handle_char(t, nfa_stack),
-            _ => return Err(NfaConstructionError::new(
-                format!("not expecting this token type: {}", t))),
+            _ => {
+                return Err(NfaConstructionError::new(format!(
+                    "not expecting this token type: {}",
+                    t
+                )))
+            }
         }
         Ok(())
     }
