@@ -62,6 +62,12 @@ impl Parser {
         }
     }
 
+    fn print_tokens(&self) {
+        for token in &self.tokens {
+            eprintln!("{}::{:03} :: => token={}", file!(), line!(), token);
+        }
+    }
+
     fn append(&mut self, t: Token) {
         self.tokens.append(&mut vec![t]);
     }
@@ -77,12 +83,6 @@ impl Parser {
                 token, self.lookahead
             )))
         };
-    }
-
-    fn print_tokens(&self) {
-        for token in &self.tokens {
-            eprintln!("{}::{:03} :: => token={}", file!(), line!(), token);
-        }
     }
 
     pub fn parse(&mut self, print_tokens: bool) -> Result<&Vec<Token>, ParseError> {

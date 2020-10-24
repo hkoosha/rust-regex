@@ -16,6 +16,7 @@ pub struct NFA {
 }
 
 fn add_state(state: &SState, states: &mut Vec<SState>) {
+    // Already contains this state? skip.
     for s in states.iter() {
         if s == state {
             return;
