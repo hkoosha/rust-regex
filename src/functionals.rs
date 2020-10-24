@@ -14,17 +14,16 @@ impl Lexer {
             pattern,
             current: 0,
             symbols: vec![
-                (Token::LeftParen, Token::LeftParen),
-                (Token::RightParen, Token::RightParen),
-                (Token::Star, Token::Star),
-                (Token::Alt, Token::Alt),
-                (Token::Concat, Token::Concat),
-                (Token::Plus, Token::Plus),
-                (Token::QMark, Token::QMark),
+                Token::LeftParen,
+                Token::RightParen,
+                Token::Star,
+                Token::Alt,
+                Token::Concat,
+                Token::Plus,
+                Token::QMark,
             ]
             .into_iter()
-            .map(|x| (x.0.symbol(), x.1))
-            .map(|x| (x.0.unwrap(), x.1))
+            .map(|it| (it.symbol().unwrap(), it))
             .collect(),
         }
     }
