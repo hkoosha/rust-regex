@@ -63,7 +63,7 @@ impl NFA {
 
 // ----------------------------------
 
-pub struct Handler {
+struct Handler {
     state_count: usize,
 }
 
@@ -166,7 +166,7 @@ impl Handler {
         nfa_stack.append(&mut vec![n1]);
     }
 
-    pub fn handle(
+    fn handle(
         &mut self,
         t: &Token,
         nfa_stack: &mut Vec<NFA>,
@@ -188,7 +188,7 @@ impl Handler {
         Ok(())
     }
 
-    pub fn new() -> Self {
+    fn new() -> Self {
         Handler { state_count: 0 }
     }
 }
