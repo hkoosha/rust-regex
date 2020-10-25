@@ -31,7 +31,7 @@ fn add_state(state: &SState, states: &mut Vec<SState>) {
 }
 
 impl NFA {
-    pub fn new(start: SState, end: SState) -> NFA {
+    fn new(start: SState, end: SState) -> NFA {
         end.borrow_mut().is_end = true;
         NFA { start, end }
     }
