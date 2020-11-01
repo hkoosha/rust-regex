@@ -1,20 +1,16 @@
-use regex::compile;
+use regex::regex1::parser::{with_explicit_concat, to_postfix};
+use regex::regex1::create_matcher;
+use std::borrow::Borrow;
 
-fn main() {
-    let mut nfa = compile("ab*".to_string()).unwrap_or_else(|e| {
-        eprintln!("error: {}", e);
-        std::process::exit(1);
-    });
+fn main() -> Result<(), String> {
+    let exp = "ab*c(d?w)*|w";
+    let implicit = with_explicit_concat(exp);
+    println!("{}", implicit);
 
-    println!("matching ab");
-    assert!(nfa.match_regex(&"ab"));
+    let postfix = to_postfix(&implicit);
+    println!("{}", postfix);
 
-    println!("matching abbbb");
-    assert!(nfa.match_regex(&"abbbb"));
+    let nfa = create_matcher(exp)?;
 
-    println!("matching a");
-    assert!(nfa.match_regex(&"a"));
-
-    println!("matching baaaab");
-    assert!(!nfa.match_regex(&"baaaab"));
+    Ok(())
 }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::constructs::{ParseError, Token};
+use crate::regex0::constructs::{ParseError, Token};
 
 pub struct Lexer {
     pattern: String,
