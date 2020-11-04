@@ -6,10 +6,10 @@ pub mod nfa;
 /// https://github.com/deniskyashif/regexjs
 ///
 pub mod parser;
+pub mod parser2;
 
 pub fn create_matcher(exp: &str) -> Result<NFA, String> {
     let explicit = with_explicit_concat(exp);
     let postfix = to_postfix(&explicit);
-    let nfa = postfix_to_nfa(&postfix);
-    nfa
+    postfix_to_nfa(&postfix)
 }

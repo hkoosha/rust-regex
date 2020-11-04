@@ -28,7 +28,6 @@ pub fn main0() {
 pub fn main1() {
     let string = std::env::args()
         .nth(1)
-        .expect("expecting one argument (the regex)")
-        .to_string();
+        .expect("expecting one argument (the regex)");
     println!("{}", infix_to_postfix(string));
 }

@@ -199,3 +199,4 @@ pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
         Ok(stack.pop().unwrap())
     }
 }
+

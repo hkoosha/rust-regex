@@ -3,8 +3,7 @@ use std::collections::HashMap;
 pub fn with_explicit_concat(str: &str) -> String {
     let mut output = String::with_capacity(str.len());
 
-    let mut i = 0;
-    for token in str.chars() {
+    for (i, token) in str.chars().enumerate() {
         output.push(token);
 
         if token != '(' && token != '|' && i < str.len() - 1 {
@@ -13,8 +12,6 @@ pub fn with_explicit_concat(str: &str) -> String {
                 _ => output.push('.'),
             }
         }
-
-        i += 1;
     }
 
     output

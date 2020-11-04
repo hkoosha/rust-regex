@@ -1,6 +1,5 @@
-use regex::regex1::parser::{with_explicit_concat, to_postfix};
 use regex::regex1::create_matcher;
-use std::borrow::Borrow;
+use regex::regex1::parser::{to_postfix, with_explicit_concat};
 
 fn main() -> Result<(), String> {
     let exp = "ab*c(d?w)*|w";
@@ -10,7 +9,7 @@ fn main() -> Result<(), String> {
     let postfix = to_postfix(&implicit);
     println!("{}", postfix);
 
-    let nfa = create_matcher(exp)?;
+    let _nfa = create_matcher(exp)?;
 
     Ok(())
 }
