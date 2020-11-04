@@ -1,3 +1,4 @@
+use crate::regex1::parser2::{Parser, TreeNode};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -138,6 +139,8 @@ fn one_or_more(nfa: NFA) -> NFA {
     NFA::new(start, end)
 }
 
+// ----------
+
 pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
     if regex.is_empty() {
         return Ok(NFA::from_epsilon());
@@ -200,3 +203,58 @@ pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
     }
 }
 
+// ----------
+
+fn parse_tree_to_nfa(root: &TreeNode) -> Result<NFA, String> {
+    match root.label.as_str() {
+        "Expr" => {
+            let term = parse_tree_to_nfa(&root.children[0])?;
+            match root.children.len() {
+                // Expr -> Term '|' Expr
+                3 => Ok(term.union(parse_tree_to_nfa(&root.children[2])?)),
+                _ => Ok(term),
+            }
+        }
+        "Term" => {
+            let factor = parse_tree_to_nfa(&root.children[0])?;
+            match root.children.len() {
+                2 => Ok(factor.concat(parse_tree_to_nfa(&root.children[1])?)),
+                _ => Ok(factor),
+            }
+        }
+        "Factor" => {
+            let atom = parse_tree_to_nfa(&root.children[0])?;
+            match root.children.len() {
+                2 => match root.children[1].label.as_str() {
+                    "*" => Ok(atom.kleen_closure()),
+                    "+" => Ok(one_or_more(atom)),
+                    "?" => Ok(zero_or_one(atom)),
+                    _ => Ok(atom),
+                },
+                _ => Ok(atom),
+            }
+        }
+        "Atom" => match root.children.len() {
+            3 => parse_tree_to_nfa(&root.children[1]),
+            _ => parse_tree_to_nfa(&root.children[0]),
+        },
+        "Char" => match root.children.len() {
+            2 => Ok(NFA::from_symbol(
+                root.children[1].label.chars().next().unwrap(),
+            )),
+            _ => Ok(NFA::from_symbol(
+                root.children[0].label.chars().next().unwrap(),
+            )),
+        },
+        _ => Err(format!("unrecognized node label: {}", root.label)),
+    }
+}
+
+pub fn infix_to_nfa(regex: &str) -> Result<NFA, String> {
+    if regex.is_empty() {
+        return Ok(NFA::from_epsilon());
+    }
+
+    let parse_tree = Parser::new(regex.to_string()).parse()?;
+    parse_tree_to_nfa(&parse_tree)
+}
