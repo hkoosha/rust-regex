@@ -1,7 +1,8 @@
-use crate::regex1::parser2::{Parser, TreeNode};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+
+use crate::regex1::parser::{Parser, TreeNode};
 
 const INITIAL_CAPACITY: usize = 8;
 
@@ -9,26 +10,28 @@ type State = Rc<RefCell<_State>>;
 
 #[derive(Debug)]
 struct _State {
+    name: usize,
     is_end: bool,
     transitions: HashMap<char, State>,
     epsilon_transitions: Vec<State>,
 }
 
 impl _State {
-    fn new(is_end: bool) -> _State {
+    fn new(name: usize, is_end: bool) -> _State {
         _State {
+            name,
             is_end,
             transitions: HashMap::with_capacity(INITIAL_CAPACITY),
             epsilon_transitions: Vec::with_capacity(INITIAL_CAPACITY),
         }
     }
 
-    fn from_start() -> State {
-        Self::new(false).into_cell()
+    fn from_start(name: usize) -> State {
+        Self::new(name, false).into_cell()
     }
 
-    fn from_end() -> State {
-        Self::new(true).into_cell()
+    fn from_end(name: usize) -> State {
+        Self::new(name, true).into_cell()
     }
 
     fn into_cell(self) -> Rc<RefCell<_State>> {
@@ -46,6 +49,8 @@ impl _State {
 
 // ------
 
+type Namer = Rc<RefCell<dyn FnMut() -> usize>>;
+
 pub struct NFA {
     start: State,
     end: State,
@@ -56,28 +61,32 @@ impl NFA {
         NFA { start, end }
     }
 
-    fn from_epsilon() -> NFA {
-        let start = _State::from_start();
-        let end = _State::from_end();
+    fn from_epsilon(namer: Namer) -> NFA {
+        let mut start = _State::from_start(namer.borrow_mut()());
+        let end = _State::from_end(namer.borrow_mut()());
         start.borrow_mut().add_epsilon_transition(end.clone());
         Self::new(start, end)
     }
 
-    fn from_symbol(symbol: char) -> NFA {
-        let start = _State::from_start();
-        let end = _State::from_end();
+    fn from_symbol(namer: Namer, symbol: char) -> NFA {
+        let mut start = _State::from_start(namer.borrow_mut()());
+        let end = _State::from_end(namer.borrow_mut()());
         start.borrow_mut().add_transition(end.clone(), symbol);
         Self::new(start, end)
     }
 
-    fn concat(&self, second: NFA) -> NFA {
+    // -------------
+
+    fn concat(&mut self, second: NFA) -> NFA {
         self.end.borrow_mut().add_epsilon_transition(second.start);
         self.end.borrow_mut().is_end = false;
         Self::new(self.start.clone(), second.end)
     }
 
-    fn union(&self, second: NFA) -> NFA {
-        let start = _State::from_start();
+    fn union(&mut self, namer: Namer, mut second: NFA) -> NFA {
+        let mut start = _State::from_start(namer.borrow_mut()());
+        let end = _State::from_end(namer.borrow_mut()());
+
         start
             .borrow_mut()
             .add_epsilon_transition(self.start.clone());
@@ -85,18 +94,18 @@ impl NFA {
             .borrow_mut()
             .add_epsilon_transition(second.start.clone());
 
-        let end = _State::from_end();
-
         self.end.borrow_mut().add_epsilon_transition(end.clone());
+        self.end.borrow_mut().is_end = false;
+
         second.end.borrow_mut().add_epsilon_transition(end.clone());
         second.end.borrow_mut().is_end = false;
 
         NFA::new(start, end)
     }
 
-    fn kleen_closure(&self) -> NFA {
-        let start = _State::from_start();
-        let end = _State::from_end();
+    fn kleen_closure(mut self, namer: Namer) -> NFA {
+        let mut start = _State::from_start(namer.borrow_mut()());
+        let end = _State::from_end(namer.borrow_mut()());
 
         start.borrow_mut().add_epsilon_transition(end.clone());
         start
@@ -107,43 +116,60 @@ impl NFA {
         self.end
             .borrow_mut()
             .add_epsilon_transition(self.start.clone());
+
+        self.end.borrow_mut().is_end = false;
+
+        NFA::new(start, end)
+    }
+
+    fn zero_or_one(mut self, namer: Namer) -> NFA {
+        let mut start = _State::from_start(namer.borrow_mut()());
+        let end = _State::from_end(namer.borrow_mut()());
+
+        start.borrow_mut().add_epsilon_transition(end.clone());
+        start
+            .borrow_mut()
+            .add_epsilon_transition(self.start.clone());
+
+        self.end.borrow_mut().add_epsilon_transition(end.clone());
+
+        self.end.borrow_mut().is_end = false;
+
+        NFA::new(start, end)
+    }
+
+    fn one_or_more(mut self, namer: Namer) -> NFA {
+        let mut start = _State::from_start(namer.borrow_mut()());
+        let end = _State::from_end(namer.borrow_mut()());
+
+        start
+            .borrow_mut()
+            .add_epsilon_transition(self.start.clone());
+
+        self.end.borrow_mut().add_epsilon_transition(end.clone());
+        self.end
+            .borrow_mut()
+            .add_epsilon_transition(self.start.clone());
+
         self.end.borrow_mut().is_end = false;
 
         NFA::new(start, end)
     }
 }
 
-fn zero_or_one(nfa: NFA) -> NFA {
-    let start = _State::from_start();
-    let end = _State::from_end();
-
-    start.borrow_mut().add_epsilon_transition(end.clone());
-    start.borrow_mut().add_epsilon_transition(nfa.start.clone());
-
-    nfa.end.borrow_mut().add_epsilon_transition(end.clone());
-    nfa.end.borrow_mut().is_end = false;
-
-    NFA::new(start, end)
-}
-
-fn one_or_more(nfa: NFA) -> NFA {
-    let start = _State::from_start();
-    let end = _State::from_end();
-    start.borrow_mut().add_epsilon_transition(nfa.start.clone());
-    nfa.end.borrow_mut().add_epsilon_transition(end.clone());
-    nfa.end
-        .borrow_mut()
-        .add_epsilon_transition(nfa.start.clone());
-    nfa.end.borrow_mut().is_end = false;
-
-    NFA::new(start, end)
-}
-
 // ----------
 
 pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
+    let mut name_holder = 0usize;
+    let mut name = move || {
+        let new_name = name_holder;
+        name_holder += 1;
+        return new_name;
+    };
+    let namer: Namer = Rc::new(RefCell::new(name));
+
     if regex.is_empty() {
-        return Ok(NFA::from_epsilon());
+        return Ok(NFA::from_epsilon(namer.clone()));
     }
 
     let mut stack: Vec<NFA> = Vec::new();
@@ -152,43 +178,58 @@ pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
         match token {
             '*' => {
                 if stack.is_empty() {
-                    return Err("stack is empty while expecting at least one element".to_string());
-                }
-                let nfa = stack.pop().unwrap();
-                stack.push(nfa.kleen_closure())
-            }
-            '?' => {
-                if stack.is_empty() {
-                    return Err("stack is empty while expecting at least one element".to_string());
-                }
-                let nfa = stack.pop().unwrap();
-                stack.push(zero_or_one(nfa));
-            }
-            '+' => {
-                if stack.is_empty() {
-                    return Err("stack is empty while expecting at least one element".to_string());
-                }
-                let nfa = stack.pop().unwrap();
-                stack.push(one_or_more(nfa));
-            }
-            '|' => {
-                if stack.len() < 2 {
                     return Err(
-                        "stack is empty or contains only one element while expecting at least two element"
+                        "stack is empty while expecting at least one element for operation: *"
                             .to_string(),
                     );
                 }
-                let right = stack.pop().unwrap();
-                let left = stack.pop().unwrap();
-                stack.push(left.union(right));
+                let nfa = stack.pop().unwrap();
+                stack.push(nfa.kleen_closure(namer.clone()))
+            }
+            '?' => {
+                if stack.is_empty() {
+                    return Err(
+                        "stack is empty while expecting at least one element for operation: ?"
+                            .to_string(),
+                    );
+                }
+                let nfa = stack.pop().unwrap();
+                stack.push(nfa.zero_or_one(namer.clone()));
+            }
+            '+' => {
+                if stack.is_empty() {
+                    return Err(
+                        "stack is empty while expecting at least one element for operation: +"
+                            .to_string(),
+                    );
+                }
+                let nfa = stack.pop().unwrap();
+                stack.push(nfa.one_or_more(namer.clone()));
+            }
+            '|' => {
+                if stack.len() < 2 {
+                    return Err(format!(
+                        "stack has less than two elements, while expecting at least two element for operation: |, number of elements in stack: {}", 
+                        stack.len()
+                    ));
+                }
+                let mut right = stack.pop().unwrap();
+                let mut left = stack.pop().unwrap();
+                stack.push(left.union(namer.clone(), right));
             }
             '.' => {
+                if stack.len() < 2 {
+                    return Err(format!(
+                        "stack has less than two elements, while expecting at least two element, for operation: ., number of elements in stack: {}",
+                        stack.len()
+                    ));
+                }
                 let right = stack.pop().unwrap();
-                let left = stack.pop().unwrap();
+                let mut left = stack.pop().unwrap();
                 stack.push(left.concat(right));
             }
             _ => {
-                stack.push(NFA::from_symbol(token));
+                stack.push(NFA::from_symbol(namer.clone(), token));
             }
         }
     }
@@ -205,44 +246,49 @@ pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
 
 // ----------
 
-fn parse_tree_to_nfa(root: &TreeNode) -> Result<NFA, String> {
+fn parse_tree_to_nfa(root: &TreeNode, mut namer: Namer) -> Result<NFA, String> {
     match root.label.as_str() {
         "Expr" => {
-            let term = parse_tree_to_nfa(&root.children[0])?;
+            let mut term = parse_tree_to_nfa(&root.children[0], namer.clone())?;
             match root.children.len() {
                 // Expr -> Term '|' Expr
-                3 => Ok(term.union(parse_tree_to_nfa(&root.children[2])?)),
+                3 => Ok(term.union(
+                    namer.clone(),
+                    parse_tree_to_nfa(&root.children[2], namer.clone())?,
+                )),
                 _ => Ok(term),
             }
         }
         "Term" => {
-            let factor = parse_tree_to_nfa(&root.children[0])?;
+            let mut factor = parse_tree_to_nfa(&root.children[0], namer.clone())?;
             match root.children.len() {
-                2 => Ok(factor.concat(parse_tree_to_nfa(&root.children[1])?)),
+                2 => Ok(factor.concat(parse_tree_to_nfa(&root.children[1], namer)?)),
                 _ => Ok(factor),
             }
         }
         "Factor" => {
-            let atom = parse_tree_to_nfa(&root.children[0])?;
+            let atom = parse_tree_to_nfa(&root.children[0], namer.clone())?;
             match root.children.len() {
                 2 => match root.children[1].label.as_str() {
-                    "*" => Ok(atom.kleen_closure()),
-                    "+" => Ok(one_or_more(atom)),
-                    "?" => Ok(zero_or_one(atom)),
+                    "*" => Ok(atom.kleen_closure(namer)),
+                    "+" => Ok(atom.one_or_more(namer)),
+                    "?" => Ok(atom.zero_or_one(namer)),
                     _ => Ok(atom),
                 },
                 _ => Ok(atom),
             }
         }
         "Atom" => match root.children.len() {
-            3 => parse_tree_to_nfa(&root.children[1]),
-            _ => parse_tree_to_nfa(&root.children[0]),
+            3 => parse_tree_to_nfa(&root.children[1], namer),
+            _ => parse_tree_to_nfa(&root.children[0], namer),
         },
         "Char" => match root.children.len() {
             2 => Ok(NFA::from_symbol(
+                namer,
                 root.children[1].label.chars().next().unwrap(),
             )),
             _ => Ok(NFA::from_symbol(
+                namer,
                 root.children[0].label.chars().next().unwrap(),
             )),
         },
@@ -251,10 +297,52 @@ fn parse_tree_to_nfa(root: &TreeNode) -> Result<NFA, String> {
 }
 
 pub fn infix_to_nfa(regex: &str) -> Result<NFA, String> {
+    let mut name_holder = 0usize;
+    let mut name = move || {
+        let new_name = name_holder;
+        name_holder += 1;
+        return new_name;
+    };
+    let namer: Namer = Rc::new(RefCell::new(name));
+
     if regex.is_empty() {
-        return Ok(NFA::from_epsilon());
+        return Ok(NFA::from_epsilon(namer));
     }
 
     let parse_tree = Parser::new(regex.to_string()).parse()?;
-    parse_tree_to_nfa(&parse_tree)
+    parse_tree_to_nfa(&parse_tree, Rc::new(RefCell::new(name)))
+}
+
+// ----------
+
+fn add_next_state(state: &State, next_states: &mut Vec<State>, mut visited: Vec<State>) {
+    if state.borrow().epsilon_transitions.is_empty() {
+        next_states.push(state.clone());
+    } else {
+        for s in &state.borrow().epsilon_transitions {}
+    }
+}
+
+fn recognize(nfa: &NFA, word: &str) -> bool {
+    let mut current_states: Vec<State> = vec![];
+
+    // The initial set of current states is either the start state or
+    // the set of states reachable by epsilon transitions from the start state.
+    add_next_state(&nfa.start, &mut current_states, vec![]);
+
+    for symbol in word.chars() {
+        let mut next_states: Vec<State> = vec![];
+        for state in &current_states {
+            if let Some(next_state) = state.borrow().transitions.get(&symbol) {
+                add_next_state(next_state, &mut next_states, vec![]);
+            }
+        }
+
+        current_states = next_states;
+    }
+
+    current_states
+        .into_iter()
+        .find(|s| s.borrow().is_end)
+        .is_some()
 }

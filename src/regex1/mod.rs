@@ -6,7 +6,6 @@ use crate::regex1::parser::{to_postfix, with_explicit_concat};
 
 pub mod nfa;
 pub mod parser;
-pub mod parser2;
 
 pub fn create_matcher(exp: &str) -> Result<NFA, String> {
     let explicit = with_explicit_concat(exp);

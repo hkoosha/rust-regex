@@ -9,7 +9,7 @@ fn main() -> Result<(), String> {
     let postfix = to_postfix(&implicit);
     println!("{}", postfix);
 
-    let _nfa = create_matcher(exp)?;
+    let nfa = create_matcher(exp)?;
 
     Ok(())
 }
