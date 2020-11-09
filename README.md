@@ -8,6 +8,7 @@ A good read: https://swtch.com/~rsc/regexp (regex crate complies with what Russ 
 Regular expression engine in Rust using Thompson's algorithm
 
 One of implementations inspired by: https://github.com/xysun/regex
+
 The other implementation inspired by: https://github.com/deniskyashif/regexjs
 
 
