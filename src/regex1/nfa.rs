@@ -286,7 +286,8 @@ pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
             '|' => {
                 if stack.len() < 2 {
                     return Err(format!(
-                        "stack has less than two elements, while expecting at least two element for operation: |, number of elements in stack: {}", 
+                        "stack has less than two elements, while expecting at least two element \
+                        for operation: `|`, number of elements in stack: {}",
                         stack.len()
                     ));
                 }
@@ -297,7 +298,8 @@ pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
             '.' => {
                 if stack.len() < 2 {
                     return Err(format!(
-                        "stack has less than two elements, while expecting at least two element, for operation: ., number of elements in stack: {}",
+                        "stack has less than two elements, while expecting at least two element, \
+                        for operation: `.`, number of elements in stack: {}",
                         stack.len()
                     ));
                 }
