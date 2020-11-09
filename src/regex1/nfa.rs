@@ -1,5 +1,8 @@
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter};
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use crate::regex1::parser::{Parser, TreeNode};
@@ -8,7 +11,6 @@ const INITIAL_CAPACITY: usize = 8;
 
 type State = Rc<RefCell<_State>>;
 
-#[derive(Debug)]
 struct _State {
     name: usize,
     is_end: bool,
@@ -47,10 +49,66 @@ impl _State {
     }
 }
 
-// ------
+impl PartialEq for _State {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for _State {}
+
+impl PartialOrd for _State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.name.cmp(&other.name))
+    }
+}
+
+impl Ord for _State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
+impl Display for _State {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "State[name={}, is_end={}, transitions={}, epsilons={}]",
+            self.name,
+            self.is_end,
+            self.transitions.len(),
+            self.epsilon_transitions.len()
+        )
+    }
+}
+
+impl Debug for _State {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self, f)
+    }
+}
+
+impl Hash for _State {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
+// -----------------------------------------------------------------------------
 
 type Namer = Rc<RefCell<dyn FnMut() -> usize>>;
 
+fn new_namer() -> Namer {
+    let mut name_holder = 0usize;
+    let name = move || {
+        let new_name = name_holder;
+        name_holder += 1;
+        new_name
+    };
+    Rc::new(RefCell::new(name))
+}
+
+#[derive(Debug)]
 pub struct NFA {
     start: State,
     end: State,
@@ -62,14 +120,14 @@ impl NFA {
     }
 
     fn from_epsilon(namer: Namer) -> NFA {
-        let mut start = _State::from_start(namer.borrow_mut()());
+        let start = _State::from_start(namer.borrow_mut()());
         let end = _State::from_end(namer.borrow_mut()());
         start.borrow_mut().add_epsilon_transition(end.clone());
         Self::new(start, end)
     }
 
     fn from_symbol(namer: Namer, symbol: char) -> NFA {
-        let mut start = _State::from_start(namer.borrow_mut()());
+        let start = _State::from_start(namer.borrow_mut()());
         let end = _State::from_end(namer.borrow_mut()());
         start.borrow_mut().add_transition(end.clone(), symbol);
         Self::new(start, end)
@@ -83,8 +141,8 @@ impl NFA {
         Self::new(self.start.clone(), second.end)
     }
 
-    fn union(&mut self, namer: Namer, mut second: NFA) -> NFA {
-        let mut start = _State::from_start(namer.borrow_mut()());
+    fn union(&mut self, namer: Namer, second: NFA) -> NFA {
+        let start = _State::from_start(namer.borrow_mut()());
         let end = _State::from_end(namer.borrow_mut()());
 
         start
@@ -103,8 +161,8 @@ impl NFA {
         NFA::new(start, end)
     }
 
-    fn kleen_closure(mut self, namer: Namer) -> NFA {
-        let mut start = _State::from_start(namer.borrow_mut()());
+    fn kleen_closure(self, namer: Namer) -> NFA {
+        let start = _State::from_start(namer.borrow_mut()());
         let end = _State::from_end(namer.borrow_mut()());
 
         start.borrow_mut().add_epsilon_transition(end.clone());
@@ -122,8 +180,8 @@ impl NFA {
         NFA::new(start, end)
     }
 
-    fn zero_or_one(mut self, namer: Namer) -> NFA {
-        let mut start = _State::from_start(namer.borrow_mut()());
+    fn zero_or_one(self, namer: Namer) -> NFA {
+        let start = _State::from_start(namer.borrow_mut()());
         let end = _State::from_end(namer.borrow_mut()());
 
         start.borrow_mut().add_epsilon_transition(end.clone());
@@ -138,8 +196,8 @@ impl NFA {
         NFA::new(start, end)
     }
 
-    fn one_or_more(mut self, namer: Namer) -> NFA {
-        let mut start = _State::from_start(namer.borrow_mut()());
+    fn one_or_more(self, namer: Namer) -> NFA {
+        let start = _State::from_start(namer.borrow_mut()());
         let end = _State::from_end(namer.borrow_mut()());
 
         start
@@ -157,23 +215,42 @@ impl NFA {
     }
 }
 
+impl PartialEq for NFA {
+    fn eq(&self, other: &Self) -> bool {
+        self.end == other.end && self.start == other.start
+    }
+}
+
+impl Eq for NFA {}
+
+impl Display for NFA {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "NFA<start={}, end={}>",
+            self.start.borrow(),
+            self.end.borrow()
+        )
+    }
+}
+
+impl Hash for NFA {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.start.borrow().name.hash(state);
+        self.end.borrow().name.hash(state);
+    }
+}
+
 // ----------
 
 pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
-    let mut name_holder = 0usize;
-    let mut name = move || {
-        let new_name = name_holder;
-        name_holder += 1;
-        return new_name;
-    };
-    let namer: Namer = Rc::new(RefCell::new(name));
+    let namer = new_namer();
 
     if regex.is_empty() {
         return Ok(NFA::from_epsilon(namer.clone()));
     }
 
     let mut stack: Vec<NFA> = Vec::new();
-
     for token in regex.chars() {
         match token {
             '*' => {
@@ -213,7 +290,7 @@ pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
                         stack.len()
                     ));
                 }
-                let mut right = stack.pop().unwrap();
+                let right = stack.pop().unwrap();
                 let mut left = stack.pop().unwrap();
                 stack.push(left.union(namer.clone(), right));
             }
@@ -246,7 +323,7 @@ pub fn postfix_to_nfa(regex: &str) -> Result<NFA, String> {
 
 // ----------
 
-fn parse_tree_to_nfa(root: &TreeNode, mut namer: Namer) -> Result<NFA, String> {
+fn parse_tree_to_nfa(root: &TreeNode, namer: Namer) -> Result<NFA, String> {
     match root.label.as_str() {
         "Expr" => {
             let mut term = parse_tree_to_nfa(&root.children[0], namer.clone())?;
@@ -297,44 +374,51 @@ fn parse_tree_to_nfa(root: &TreeNode, mut namer: Namer) -> Result<NFA, String> {
 }
 
 pub fn infix_to_nfa(regex: &str) -> Result<NFA, String> {
-    let mut name_holder = 0usize;
-    let mut name = move || {
-        let new_name = name_holder;
-        name_holder += 1;
-        return new_name;
-    };
-    let namer: Namer = Rc::new(RefCell::new(name));
+    let namer = new_namer();
 
     if regex.is_empty() {
         return Ok(NFA::from_epsilon(namer));
     }
 
     let parse_tree = Parser::new(regex.to_string()).parse()?;
-    parse_tree_to_nfa(&parse_tree, Rc::new(RefCell::new(name)))
+    parse_tree_to_nfa(&parse_tree, namer)
 }
 
 // ----------
 
-fn add_next_state(state: &State, next_states: &mut Vec<State>, mut visited: Vec<State>) {
+fn add_next_state(
+    state: &State,
+    next_states: &mut Vec<State>,
+    visited: Rc<RefCell<Vec<usize>>>,
+) {
     if state.borrow().epsilon_transitions.is_empty() {
         next_states.push(state.clone());
     } else {
-        for s in &state.borrow().epsilon_transitions {}
+        for s in &state.borrow().epsilon_transitions {
+            if !visited.borrow().contains(&s.borrow().name) {
+                visited.borrow_mut().push(s.borrow().name);
+                add_next_state(s, next_states, visited.clone())
+            }
+        }
     }
 }
 
-fn recognize(nfa: &NFA, word: &str) -> bool {
+pub fn recognize(nfa: &NFA, word: &str) -> bool {
     let mut current_states: Vec<State> = vec![];
 
     // The initial set of current states is either the start state or
     // the set of states reachable by epsilon transitions from the start state.
-    add_next_state(&nfa.start, &mut current_states, vec![]);
+    add_next_state(
+        &nfa.start,
+        &mut current_states,
+        Rc::new(RefCell::new(vec![])),
+    );
 
     for symbol in word.chars() {
         let mut next_states: Vec<State> = vec![];
         for state in &current_states {
             if let Some(next_state) = state.borrow().transitions.get(&symbol) {
-                add_next_state(next_state, &mut next_states, vec![]);
+                add_next_state(next_state, &mut next_states, Rc::new(RefCell::new(vec![])));
             }
         }
 
@@ -343,6 +427,5 @@ fn recognize(nfa: &NFA, word: &str) -> bool {
 
     current_states
         .into_iter()
-        .find(|s| s.borrow().is_end)
-        .is_some()
+        .any(|s| s.borrow().is_end)
 }
