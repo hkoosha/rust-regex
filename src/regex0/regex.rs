@@ -2,9 +2,8 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 
-use crate::regex0::constructs::{NfaConstructionError, SState, State, Token};
+use crate::regex0::constructs::{SState, State, Token};
 use crate::regex0::functionals::{Lexer, Parser};
-
 
 // ******* BE WARNED !!! There are mem leaks in the following code! *******
 
@@ -29,9 +28,9 @@ fn add_state(state: &SState, states: &mut Vec<SState>) {
 }
 
 impl NFA {
-    fn new(start: SState, end: SState) -> NFA {
+    fn new(start: SState, end: SState) -> Self {
         end.borrow_mut().is_end = true;
-        NFA { start, end }
+        Self { start, end }
     }
 
     pub fn match_regex(&mut self, to_match: &str) -> bool {
@@ -71,18 +70,11 @@ impl Handler {
         Rc::new(RefCell::new(State::new(format!("s{}", self.state_count))))
     }
 
-    fn handle_char(
-        &mut self,
-        t: &Token,
-        nfa_stack: &mut Vec<NFA>,
-    ) -> Result<(), NfaConstructionError> {
+    fn handle_char(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) -> Result<(), String> {
         let v: char = if let Token::Char(v) = *t {
             v
         } else {
-            return Err(NfaConstructionError::new(format!(
-                "expecting Token::Char, got={}",
-                *t
-            )));
+            return Err(format!("expecting Token::Char, got={}", *t));
         };
 
         let s0 = self.create_state();
@@ -164,7 +156,7 @@ impl Handler {
         nfa_stack.append(&mut vec![n1]);
     }
 
-    fn handle(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) -> Result<(), NfaConstructionError> {
+    fn handle(&mut self, t: &Token, nfa_stack: &mut Vec<NFA>) -> Result<(), String> {
         match t {
             Token::Star => self.handle_rep(t, nfa_stack),
             Token::Alt => self.handle_alt(t, nfa_stack),
@@ -173,17 +165,14 @@ impl Handler {
             Token::QMark => self.handle_qmark(t, nfa_stack),
             Token::Char(_) => return self.handle_char(t, nfa_stack),
             _ => {
-                return Err(NfaConstructionError::new(format!(
-                    "not expecting this token type: {}",
-                    t
-                )));
+                return Err(format!("not expecting this token type: {}", t));
             }
         }
         Ok(())
     }
 
     fn new() -> Self {
-        Handler { state_count: 0 }
+        Self { state_count: 0 }
     }
 }
 
@@ -210,4 +199,3 @@ pub fn compile(pattern: String) -> Result<NFA, Box<dyn Error>> {
     assert_eq!(nfa_stack.len(), 1);
     Ok(nfa_stack.pop().unwrap())
 }
-

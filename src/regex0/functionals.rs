@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::regex0::constructs::{ParseError, Token};
+use crate::regex0::constructs::Token;
 
 pub struct Lexer {
     pattern: String,
@@ -9,8 +9,8 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(pattern: String) -> Lexer {
-        Lexer {
+    pub fn new(pattern: String) -> Self {
+        Self {
             pattern,
             current: 0,
             symbols: vec![
@@ -55,7 +55,7 @@ pub struct Parser {
 impl Parser {
     pub fn new(mut lexer: Lexer) -> Parser {
         let lookahead = lexer.get_token();
-        Parser {
+        Self {
             lexer,
             tokens: vec![],
             lookahead,
@@ -72,29 +72,31 @@ impl Parser {
         self.tokens.append(&mut vec![t]);
     }
 
-    fn consume(&mut self, token: &Token) -> Result<(), ParseError> {
+    fn consume(&mut self, token: &Token) -> Result<(), String> {
         eprintln!("{}::{:03} :: consume({})", file!(), line!(), token);
         return if self.lookahead.name() == token.name() {
             self.lookahead = self.lexer.get_token();
             Ok(())
         } else {
-            Err(ParseError::new(format!(
+            Err(format!(
                 "was expecting={} but got={}",
                 token, self.lookahead
-            )))
+            ))
         };
     }
 
-    pub fn parse(&mut self, print_tokens: bool) -> Result<&Vec<Token>, ParseError> {
+    pub fn parse(&mut self, print_tokens: bool) -> Result<&Vec<Token>, String> {
         eprintln!("{}::{:03} :: parse()", file!(), line!());
         self.exp()?;
+
         if print_tokens {
             self.print_tokens();
         }
+
         Ok(&self.tokens)
     }
 
-    fn exp(&mut self) -> Result<(), ParseError> {
+    fn exp(&mut self) -> Result<(), String> {
         eprintln!("{}::{:03} :: exp()", file!(), line!());
         self.term()?;
 
@@ -108,7 +110,7 @@ impl Parser {
         Ok(())
     }
 
-    fn term(&mut self) -> Result<(), ParseError> {
+    fn term(&mut self) -> Result<(), String> {
         eprintln!("{}::{:03} :: term()", file!(), line!());
         self.factor()?;
 
@@ -123,7 +125,7 @@ impl Parser {
         Ok(())
     }
 
-    fn factor(&mut self) -> Result<(), ParseError> {
+    fn factor(&mut self) -> Result<(), String> {
         eprintln!("{}::{:03} :: factor()", file!(), line!());
         self.primary()?;
 
@@ -136,7 +138,7 @@ impl Parser {
         Ok(())
     }
 
-    fn primary(&mut self) -> Result<(), ParseError> {
+    fn primary(&mut self) -> Result<(), String> {
         eprintln!("{}::{:03} :: primary()", file!(), line!());
 
         match self.lookahead {
@@ -145,20 +147,18 @@ impl Parser {
                 self.consume(&Token::LeftParen)?;
                 self.exp()?;
                 self.consume(&Token::RightParen)?;
+                Ok(())
             }
             Token::Char(v) => {
                 eprintln!("{}::{:03} :: primary() -> char : {}", file!(), line!(), v);
                 self.append(self.lookahead);
                 self.consume(&Token::Char(0 as char))?;
+                Ok(())
             }
-            _ => {
-                return Err(ParseError::new(format!(
-                    "was not expecting this token type in primary() : {}",
-                    self.lookahead
-                )));
-            }
+            _ => Err(format!(
+                "was not expecting this token type in primary() : {}",
+                self.lookahead
+            )),
         }
-
-        Ok(())
     }
 }

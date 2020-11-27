@@ -388,11 +388,7 @@ pub fn infix_to_nfa(regex: &str) -> Result<NFA, String> {
 
 // ----------
 
-fn add_next_state(
-    state: &State,
-    next_states: &mut Vec<State>,
-    visited: Rc<RefCell<Vec<usize>>>,
-) {
+fn add_next_state(state: &State, next_states: &mut Vec<State>, visited: Rc<RefCell<Vec<usize>>>) {
     if state.borrow().epsilon_transitions.is_empty() {
         next_states.push(state.clone());
     } else {
@@ -427,7 +423,5 @@ pub fn recognize(nfa: &NFA, word: &str) -> bool {
         current_states = next_states;
     }
 
-    current_states
-        .into_iter()
-        .any(|s| s.borrow().is_end)
+    current_states.into_iter().any(|s| s.borrow().is_end)
 }

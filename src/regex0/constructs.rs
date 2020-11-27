@@ -22,15 +22,15 @@ pub enum Token {
 impl Token {
     pub fn name(&self) -> &'static str {
         match &self {
-            Token::LeftParen => "LeftParen",
-            Token::RightParen => "RightParen",
-            Token::Star => "Star",
-            Token::Alt => "Alt",
-            Token::Concat => "Concat",
-            Token::Plus => "Plus",
-            Token::QMark => "QMark",
-            Token::Char(_) => "Char",
-            Token::None => "None",
+            Self::LeftParen => "LeftParen",
+            Self::RightParen => "RightParen",
+            Self::Star => "Star",
+            Self::Alt => "Alt",
+            Self::Concat => "Concat",
+            Self::Plus => "Plus",
+            Self::QMark => "QMark",
+            Self::Char(_) => "Char",
+            Self::None => "None",
         }
     }
 
@@ -70,8 +70,8 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(name: String) -> State {
-        State {
+    pub fn new(name: String) -> Self {
+        Self {
             epsilon: vec![],
             transitions: HashMap::new(),
             name,
@@ -99,44 +99,3 @@ impl Hash for State {
         self.name.hash(state);
     }
 }
-
-// ----------------------------------
-
-#[derive(Debug)]
-pub struct ParseError {
-    error: String,
-}
-
-/// Errors by parser
-impl ParseError {
-    pub fn new(error: String) -> ParseError {
-        ParseError { error }
-    }
-}
-
-impl Display for ParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        write!(f, "ParseError[{}]", &self.error)
-    }
-}
-
-impl Error for ParseError {}
-
-#[derive(Debug)]
-pub struct NfaConstructionError {
-    error: String,
-}
-
-impl NfaConstructionError {
-    pub fn new(error: String) -> NfaConstructionError {
-        NfaConstructionError { error }
-    }
-}
-
-impl Display for NfaConstructionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        write!(f, "NfaConstructionError[{}]", &self.error)
-    }
-}
-
-impl Error for NfaConstructionError {}

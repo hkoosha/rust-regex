@@ -44,7 +44,7 @@ pub fn infix_to_postfix(regex: String) -> String {
     eprintln!("{}", regex);
 
     let mut postfix = String::with_capacity(regex.len());
-    let mut stack = Vec::with_capacity(postfix.len() / 2); // init cap just a guess.
+    let mut stack = Vec::with_capacity(postfix.len());
 
     for c in regex.chars() {
         match c {
